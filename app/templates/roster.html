@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Ambassador Portal — Roster{% endblock %}
+
+{% block content %}
+<section class="max-w-7xl mx-auto px-5 sm:px-8 pt-12 pb-16">
+  <div class="flex items-center justify-between flex-wrap gap-3">
+    <div>
+      <h1 class="text-3xl font-extrabold tracking-tight">All Ambassadors</h1>
+      <p class="text-ink-500 mt-2">Search, filter, and sort the full network.</p>
+    </div>
+    <span id="resultCount" class="text-sm text-ink-500"></span>
+  </div>
+
+  <div class="mt-6 flex flex-col sm:flex-row gap-3">
+    <input id="searchInput" type="text" placeholder="Search name, brand, city, or code…"
+      class="flex-1 rounded-lg border border-neutral-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400" />
+    <select id="stateFilter" class="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400">
+      <option value="">All states</option>
+      {% for s in states %}
+        <option value="{{ s }}">{{ s }}</option>
+      {% endfor %}
+    </select>
+    <select id="profileFilter" class="rounded-lg border border-neutral-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400">
+      <option value="">All profile types</option>
+      {% for p in profiles %}
+        <option value="{{ p }}">{{ p }}</option>
+      {% endfor %}
+    </select>
+    <button id="clearFilters" class="text-sm font-medium px-4 py-2.5 rounded-lg border border-neutral-300 hover:border-brand-500 hover:text-brand-600 transition whitespace-nowrap">
+      Clear filters
+    </button>
+  </div>
+
+  <div class="mt-6 rounded-2xl border border-neutral-200 bg-white overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead class="bg-neutral-50 text-ink-500 uppercase text-xs tracking-wide">
+          <tr>
+            <th class="text-left px-4 py-3 cursor-pointer select-none hover:text-brand-600" data-sort="sr_no">#</th>
+            <th class="text-left px-4 py-3 cursor-pointer select-none hover:text-brand-600" data-sort="name">Name</th>
+            <th class="text-left px-4 py-3 cursor-pointer select-none hover:text-brand-600" data-sort="brand_name">Brand</th>
+            <th class="text-left px-4 py-3 cursor-pointer select-none hover:text-brand-600" data-sort="ambassador_code">Code</th>
+            <th class="text-left px-4 py-3 cursor-pointer select-none hover:text-brand-600" data-sort="city">City</th>
+            <th class="text-left px-4 py-3 cursor-pointer select-none hover:text-brand-600" data-sort="state_display">State</th>
+            <th class="text-left px-4 py-3 cursor-pointer select-none hover:text-brand-600" data-sort="profile">Profile</th>
+            <th class="text-left px-4 py-3 cursor-pointer select-none hover:text-brand-600" data-sort="completeness">Data quality</th>
+          </tr>
+        </thead>
+        <tbody id="rosterBody" class="divide-y divide-neutral-100"></tbody>
+      </table>
+    </div>
+    <div id="emptyState" class="hidden text-center py-14 text-ink-500">No ambassadors match your filters.</div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/roster.js"></script>
+{% endblock %}

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Ambassador Portal{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#fff1f0', 100: '#ffdedb', 200: '#ffb8b0',
+              400: '#ff5a45', 500: '#e8382b', 600: '#c22a1f',
+              700: '#9c2018', 900: '#5c130e',
+            },
+            ink: { 900: '#14161a', 700: '#3a3f47', 500: '#6b7280' }
+          },
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui'] }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/style.css">
+  {% block head %}{% endblock %}
+</head>
+<body class="bg-neutral-50 text-ink-900 font-sans antialiased">
+
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-neutral-200">
+    <div class="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2 font-extrabold text-lg tracking-tight">
+        <span class="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center text-sm">O2</span>
+        <span>Ambassador Portal</span>
+      </a>
+      <nav class="hidden sm:flex items-center gap-1 text-sm font-medium">
+        <a href="/" class="px-3 py-2 rounded-md hover:bg-neutral-100 {% if active_page=='home' %}text-brand-600 bg-brand-50{% endif %}">Overview</a>
+        <a href="/roster" class="px-3 py-2 rounded-md hover:bg-neutral-100 {% if active_page=='roster' %}text-brand-600 bg-brand-50{% endif %}">Roster</a>
+        <a href="/analytics" class="px-3 py-2 rounded-md hover:bg-neutral-100 {% if active_page=='analytics' %}text-brand-600 bg-brand-50{% endif %}">Analytics</a>
+      </nav>
+      <div class="flex items-center gap-3">
+        <span id="lastSyncedHeader" class="hidden sm:inline text-xs text-ink-500"></span>
+        <button id="refreshBtn" class="text-xs font-semibold px-3 py-2 rounded-md border border-neutral-300 hover:border-brand-500 hover:text-brand-600 transition flex items-center gap-1.5">
+          <span id="refreshDot" class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span id="refreshLabel">Synced</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="border-t border-neutral-200 mt-16 py-8 text-center text-xs text-neutral-500">
+    <p>Ambassador Portal &middot; data auto-synced from Google Sheets &middot; built with FastAPI</p>
+    {% if meta and meta.last_refreshed %}
+      <p class="mt-1">Last synced: <span id="lastSyncedFooter">{{ meta.last_refreshed }}</span> &middot; source: {{ meta.source }}</p>
+    {% endif %}
+  </footer>
+
+  <script>
+    window.LAST_SYNCED = {{ (meta.last_refreshed | tojson) if meta else "null" }};
+
+    function relativeTime(isoString) {
+      if (!isoString) return 'Not yet synced';
+      const diffMs = Date.now() - new Date(isoString).getTime();
+      const mins = Math.floor(diffMs / 60000);
+      if (mins < 1) return 'Synced just now';
+      if (mins === 1) return 'Synced 1 min ago';
+      if (mins < 60) return `Synced ${mins} mins ago`;
+      const hrs = Math.floor(mins / 60);
+      if (hrs === 1) return 'Synced 1 hour ago';
+      if (hrs < 24) return `Synced ${hrs} hours ago`;
+      return `Synced ${Math.floor(hrs / 24)}d ago`;
+    }
+
+    function updateLastSyncedLabel() {
+      const el = document.getElementById('lastSyncedHeader');
+      if (el) el.textContent = relativeTime(window.LAST_SYNCED);
+    }
+    updateLastSyncedLabel();
+    setInterval(updateLastSyncedLabel, 30000);
+
+    const refreshBtn = document.getElementById('refreshBtn');
+    const refreshLabel = document.getElementById('refreshLabel');
+    const refreshDot = document.getElementById('refreshDot');
+    refreshBtn?.addEventListener('click', async () => {
+      refreshLabel.textContent = 'Syncing…';
+      refreshDot.classList.replace('bg-emerald-500', 'bg-amber-500');
+      try {
+        const res = await fetch('/api/refresh', { method: 'POST' });
+        const json = await res.json();
+        refreshLabel.textContent = json.ok ? 'Synced' : 'Using cached data';
+        refreshDot.classList.remove('bg-amber-500');
+        refreshDot.classList.add(json.ok ? 'bg-emerald-500' : 'bg-red-500');
+        window.LAST_SYNCED = json.last_refreshed || window.LAST_SYNCED;
+        updateLastSyncedLabel();
+        setTimeout(() => location.reload(), 500);
+      } catch (e) {
+        refreshLabel.textContent = 'Sync failed';
+        refreshDot.classList.replace('bg-amber-500', 'bg-red-500');
+      }
+    });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

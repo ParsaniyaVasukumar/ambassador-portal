@@ -1,0 +1,4 @@
+body { -webkit-font-smoothing: antialiased; }
+.leaflet-container { border-radius: 0.75rem; font-family: inherit; }
+::-webkit-scrollbar { height: 8px; width: 8px; }
+::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 999px; }
