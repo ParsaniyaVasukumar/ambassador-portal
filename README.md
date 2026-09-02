@@ -1,5 +1,7 @@
 # Ambassador Portal
 
+**Live demo:** https://ambassador-portal-nine.vercel.app
+
 A web-based ambassador directory that dynamically syncs with a Google Sheet, built with
 FastAPI, Jinja2, Tailwind CSS, Leaflet, and Chart.js.
 
@@ -29,15 +31,18 @@ FastAPI, Jinja2, Tailwind CSS, Leaflet, and Chart.js.
 
 ```
 ambassador-portal/
+├── api/
+│   └── index.py          # Vercel serverless entrypoint (imports app.main:app)
 ├── app/
-│   ├── main.py          # FastAPI app, routes, scheduler
-│   ├── data.py           # Google Sheet ingestion + cleaning + analytics logic
-│   ├── config.py         # env vars, state-name mapping, geojson URL
-│   ├── templates/        # Jinja2 pages (home, roster, analytics)
-│   └── static/           # CSS + JS (map, roster table, charts)
+│   ├── main.py            # FastAPI app, routes, scheduler
+│   ├── data.py            # Google Sheet ingestion + cleaning + analytics logic
+│   ├── config.py          # env vars, state-name mapping, geojson URL
+│   ├── templates/         # Jinja2 pages (home, roster, analytics)
+│   └── static/            # CSS + JS (map, roster table, charts)
 ├── data/
 │   └── sample_ambassadors.csv   # fallback dataset
 ├── requirements.txt
+├── vercel.json             # Vercel build/routing config
 └── .env.example
 ```
 
@@ -70,8 +75,24 @@ manual **Sync** button in the header that calls `/api/refresh` on demand.
 
 ## Deploying
 
-Works on any platform that runs a Python web service (Render, Railway, Fly.io, or
-Vercel's Python runtime). General steps:
+### Vercel (current live deployment)
+
+This repo includes `vercel.json` and `api/index.py`, which wrap the FastAPI app for
+Vercel's serverless Python runtime. Since serverless functions don't keep a background
+process alive, the APScheduler job in `main.py` is a best-effort convenience — the real
+data freshness guarantee comes from `data.py`'s cache, which re-checks staleness against
+`REFRESH_INTERVAL_MINUTES` on every request and re-fetches if the cached data is older
+than that window.
+
+1. Push this repo to GitHub
+2. Import it in Vercel → set `GOOGLE_SHEET_CSV_URL` (and optionally
+   `REFRESH_INTERVAL_MINUTES`) as Environment Variables
+3. Deploy — Vercel auto-detects the Python function via `vercel.json`
+
+### Render / Railway / Fly.io (alternative — long-running process)
+
+On these platforms, no changes are needed: they run a persistent process, so
+APScheduler's background job fires reliably.
 
 1. Push this repo to GitHub
 2. Create a new web service, set the start command to:
@@ -89,3 +110,8 @@ Vercel's Python runtime). General steps:
   serve that (page vs API). This keeps the pipeline testable and reusable.
 - **In-memory cache + background scheduler** instead of hitting Google Sheets on every
   page load — keeps the site fast and avoids rate limits, while still staying near-real-time.
+- **Serverless-safe refresh strategy**: rather than relying solely on APScheduler
+  (which assumes a long-running process), `get_cache()` in `data.py` checks the age
+  of the cached data on every request and re-fetches if it's stale. This makes the
+  app correct on both traditional hosts and serverless platforms like Vercel, where
+  background schedulers aren't guaranteed to run between invocations.
